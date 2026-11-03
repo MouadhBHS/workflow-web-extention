@@ -39,6 +39,10 @@ let lastPage,artifactDir;
  await page.getByRole('button',{name:'Connect',exact:true}).click();
  await page.getByText('Paste a valid 32-character companion pairing key.').waitFor();
  assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1,'invalid companion key must not change tracking');
+ const pairingWidth=await page.getByLabel('Companion pairing key').evaluate(el=>el.getBoundingClientRect().width);
+ assert.ok(pairingWidth>=300,'pairing key field must be wide enough for the actual 32-character key');
+ assert.ok(await page.getByRole('button',{name:'Connect',exact:true}).isVisible());
+ await page.locator('[data-action="dismiss-toast"]').click();
  await page.screenshot({path:path.join(out,'03-settings.png'),fullPage:true});
  // Light appearance must persist and sync to the popup, not merely recolor one tab.
  await page.getByLabel('Color theme').selectOption('light');

@@ -198,3 +198,16 @@ html[data-theme="light"] .brand-name { color:#26313e !important; }
 .companion-status{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;
 font-size:12px;font-weight:700;background:#414752;color:#f8fafc;white-space:nowrap}
 html[data-theme="light"] .companion-status{background:#e9edf2;color:#405164}
+
+/* Pairing is a full-width form, not a narrow select control. */
+.companion-pair-row{align-items:stretch}
+.companion-pair-row .setting-detail{width:100%;min-width:0}
+.companion-pair-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px}
+.companion-pair-controls .companion-key-input{
+  flex:1 1 300px;min-width:240px;max-width:500px;width:auto;height:44px;
+  margin:0;padding:0 14px;cursor:text;font:600 13px Consolas,'Courier New',monospace;letter-spacing:.025em
+}
+.companion-pair-controls button{flex:0 0 auto;white-space:nowrap;min-height:42px}
+@media(max-width:580px){
+  .companion-pair-controls .companion-key-input{flex-basis:100%;min-width:0;width:100%}
+}
