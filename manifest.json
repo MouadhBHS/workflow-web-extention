@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Workflow — Time with intention",
+  "version": "1.0.0",
+  "description": "Local time tracking, editable categories, timeline corrections and an always-visible pinned toolbar timer.",
+  "minimum_chrome_version": "120",
+  "permissions": ["storage", "alarms"],
+  "optional_permissions": ["idle", "notifications"],
+  "background": {"service_worker": "src/background.js", "type": "module"},
+  "action": {"default_title": "Workflow — click to stamp in", "default_popup": "index.html?view=tray", "default_icon": {"16":"icons/16.png","32":"icons/32.png"}},
+  "icons": {"16":"icons/16.png","32":"icons/32.png","48":"icons/48.png","128":"icons/128.png"},
+  "options_ui": {"page":"index.html", "open_in_tab":true},
+  "commands": {
+    "_execute_action": {"suggested_key":{"default":"Alt+Shift+W"},"description":"Open quick stamp"},
+    "stop-tracking": {"suggested_key":{"default":"Alt+Shift+S"},"description":"Stamp out"},
+    "open-dashboard": {"description":"Open Workflow dashboard"}
+  },
+  "content_security_policy": {"extension_pages":"script-src 'self'; object-src 'none'"}
+}

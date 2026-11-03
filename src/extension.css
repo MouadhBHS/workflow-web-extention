@@ -1,0 +1,20 @@
+/* Browser-specific sizing. Keep the original dashboard and timeline design. */
+:root{color-scheme:dark}
+html.main-window,html.main-window body{background:#171b22}
+.main-window .content{background:rgba(15,17,21,var(--surface-opacity,.97))}
+.brand-name{text-decoration:none!important;font-size:23px;letter-spacing:-1px}
+.brand-name::after{display:none!important}
+.popup-window,.popup-window body,.popup-window #app{width:380px;min-width:380px;height:490px;min-height:490px;background:#11151b}
+.popup-window .tray-app{height:490px;min-height:490px}
+.popup-window .tray-timer{align-items:flex-start;flex-direction:column;gap:8px;padding:10px 0 14px}
+.popup-window .tray-status{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.popup-window .tray-option>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.category-customize-row input[data-category-name]{width:100%;min-width:0;border:1px solid #3a414c;border-radius:8px;background:#11151b;color:#edf0f5;padding:9px}
+.category-design-heading-text strong,.stat-label,.stamp-option>span,.category-name,.entry-category{overflow-wrap:anywhere}
+.category-design-heading-text{min-width:0}
+.brand{gap:10px}.tray-brand .brand-name{font-size:22px}
+.setting-line{flex-wrap:wrap}.setting-detail{min-width:210px}
+.setting-line label.btn-outline{cursor:pointer}
+.sidebar .nav-link[aria-label]{min-height:44px}
+@media(max-width:950px){.sidebar .brand-name{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
