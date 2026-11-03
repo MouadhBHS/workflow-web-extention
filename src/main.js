@@ -127,7 +127,7 @@ function topbar() {
 function headline(title, description, actions = '') {
   return `<div class="page-heading"><div><div class="eyebrow">${formatDate(state.now, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}</div><h1>${title}</h1><p>${description}</p></div>${actions}</div>`;
 }
-function button(label, action, cls = 'btn-primary', extra = '') { return `<button class="${cls}" data-action="${action}" ${extra}>${label}</button>`; }
+function button(label, action, cls = 'btn-primary', extra = '') { return `<button type="button" class="${cls}" data-action="${action}" ${extra}>${label}</button>`; }
 function summaryTiles(start, end) {
   const totals = summarize(state.entries, start, end, state.now);
   return `<div class="stat-grid"><div class="stat-card primary-stat"><div class="stat-icon">${icon('clock', 21)}</div><div class="stat-label">TOTAL TIME TRACKED</div><div class="stat-value">${duration(totals.total, true)}</div><div class="stat-hint">A little progress adds up.</div></div>
