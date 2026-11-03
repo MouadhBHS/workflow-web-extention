@@ -190,3 +190,11 @@ html.popup-window[data-theme="light"],html.popup-window[data-theme="light"] body
 
 /* Explicitly set the brand wordmark on light surfaces (including the popup). */
 html[data-theme="light"] .brand-name { color:#26313e !important; }
+
+/* Companion connection controls */
+.companion-pair-row{align-items:center;gap:12px}
+.companion-pair-row .setting-detail{flex:1;min-width:180px}
+.companion-key-input{display:block;margin-top:12px;width:min(100%,360px);height:40px;padding:0 12px}
+.companion-status{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;
+font-size:12px;font-weight:700;background:#414752;color:#f8fafc;white-space:nowrap}
+html[data-theme="light"] .companion-status{background:#e9edf2;color:#405164}

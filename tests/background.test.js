@@ -14,7 +14,7 @@ test('worker starts without optional permissions; serial writes and storage fail
   await import('../src/background.js?test');
   const send=(command,args={})=>new Promise(resolve=>chrome.runtime.onMessage.listeners[0]({command,args},{id:'test',url:'chrome-extension://test/index.html'},resolve));
   const responses=await Promise.all([send('stamp_in',{category:'professional'}),send('stamp_in',{category:'personal'}),send('set_category_appearance',{category:'personal',name:'Rest'})]);
-  assert.ok(responses.every(r=>r.ok));assert.equal(saved.workflow.entries.filter(e=>e.end_ms===null).length,1);assert.equal(saved.workflow.styles.personal.name,'Rest');assert.equal(badge,'0m');assert.match(title,/Rest/);
+  assert.ok(responses.every(r=>r.ok));assert.equal(saved.workflow.entries.filter(e=>e.end_ms===null).length,1);assert.equal(saved.workflow.styles.personal.name,'Rest');assert.equal(badge,'');assert.match(title,/Rest/);
   const before=structuredClone(saved);rejectWrite=true;const result=await send('stamp_out');assert.equal(result.ok,false);assert.match(result.error,/QUOTA/);assert.deepEqual(saved,before);
   rejectWrite=false;assert.equal((await send('stamp_out')).ok,true);assert.equal(badge,'');
   let called=false;assert.equal(chrome.runtime.onMessage.listeners[0]({command:'stamp_out'},{id:'other',url:'https://example.com'},()=>{called=true}),undefined);assert.equal(called,false);

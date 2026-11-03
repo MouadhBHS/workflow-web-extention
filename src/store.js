@@ -84,11 +84,11 @@ export function toolbar(state,now=Date.now()) {
   const running=state.entries.find(e=>e.end_ms===null);
   if(!running)return {text:'',title:'Workflow · Not tracking — click to stamp in',color:'#6C7480'};
   const mins=Math.max(0,Math.floor((now-running.start_ms)/60000)), hours=Math.floor(mins/60), rem=String(mins%60).padStart(2,'0');
-  const text=mins<60?`${mins}m`:hours<10?`${hours}:${rem}`:hours<1000?`${hours}h`:'999+';
+  const text=''; // Toolbar badge is deliberately empty; the companion displays the clock.
   const style=state.styles[running.category];
   const rgb=style.color.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);
   const luminance=rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;
-  return {text,color:style.color,textColor:luminance>0.179?'#111111':'#FFFFFF',title:`Workflow · ${style.name} · ${hours}h ${rem}m elapsed — click to stamp out or switch`};
+  return {text,color:style.color,textColor:luminance>0.179?'#111111':'#FFFFFF',title:`Workflow · ${style.name} · Tracking — click to stamp out or switch`};
 }
 export function reminderTick(state,now,isActive) {
   const next=structuredClone(state),r=next.reminder;

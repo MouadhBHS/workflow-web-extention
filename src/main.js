@@ -19,7 +19,8 @@ const state = {
   page: 'dashboard', entries: [], active: null, day: dayStart(Date.now()),
   days: 7, now: Date.now(), loading: true, error: '', toast: '', modal: null,
   startup: false, request: 0, busy: false, selection: null, drag: null,
-  preferences: { ...DEFAULT_PREFERENCES }, savingPreferences: false, savingCategory: null
+  preferences: { ...DEFAULT_PREFERENCES }, savingPreferences: false, savingCategory: null,
+  companion: {paired:false,online:false}
 };
 const app = document.querySelector('#app');
 function applyAppearance() {
@@ -217,10 +218,27 @@ function settings() {
       <select id="reminder-cooldown" class="pref-select" data-field="cooldown" aria-label="Notification cooldown" ${reminders_enabled ? '' : 'disabled'}>${[5,10,15,20,30,45,60,90,120,180].map(m=>`<option value="${m}" ${cooldown_minutes===m?'selected':''}>${reminderFrequencyLabel(m)}</option>`).join('')}</select>
     </div>
   </section>
-  <section class="panel setting-panel"><div class="setting-section-title">BROWSER & TOOLBAR</div><div class="setting-line"><div class="setting-detail"><strong>Pin Workflow to keep your timer visible</strong><span>Open Opera Air’s Extensions menu and pin Workflow. The badge shows elapsed minutes (42m), hours and minutes (1:05), then whole hours from 10h. Hover for details; click for quick stamping. Refreshes about every 30 seconds while the browser is awake.</span></div></div><div class="setting-line"><div class="setting-detail"><strong>Always ready when the browser starts</strong><span>No separate launch switch needed. Closing this tab keeps tracking. An active session includes sleep and browser-closed time until you stamp out; correct forgotten sessions in Timeline. Alt+Shift+W opens quick stamp; Alt+Shift+S stamps out. Configure shortcuts in the browser’s extension settings.</span></div></div></section>
+  <section class="panel setting-panel"><div class="setting-section-title">FLOATING DESKTOP COMPANION</div>
+  <div class="setting-line"><div class="setting-icon">${icon('timer',21)}</div><div class="setting-detail">
+  <strong>Workflow Buddy for Windows</strong>
+  <span>A tiny, draggable, always-on-top character with the large timer. It changes mood with your category. Only the active category, its color, and start time leave the extension, via 127.0.0.1 on this PC.</span>
+  </div><span class="companion-status" role="status">${state.companion.online?'Connected':state.companion.paired?'Offline':'Not paired'}</span></div>
+  <div class="setting-line companion-pair-row"><div class="setting-detail">
+  <label class="setting-control-label" for="companion-key">Pairing key</label>
+  <span>Open Workflow Companion.exe, right-click its floating character or tray icon → Copy pairing key. Paste it here and connect. Your key is stored separately from time-tracking backups.</span>
+  <input id="companion-key" class="pref-select companion-key-input" type="password" autocomplete="off" spellcheck="false" maxlength="32" placeholder="Paste the 32-character pairing key" aria-label="Companion pairing key"/>
+  </div><button type="button" class="btn-secondary" data-action="pair-companion">Connect</button>
+  ${state.companion.paired?'<button type="button" class="btn-outline" data-action="unpair-companion">Disconnect</button>':''}
+  </div></section>
+  <section class="panel setting-panel"><div class="setting-section-title">BROWSER & TOOLBAR</div><div class="setting-line"><div class="setting-detail"><strong>Pin Workflow for quick stamping</strong><span>The toolbar icon opens the quick-stamp popup. It no longer shows a tiny timer badge; the companion is the dedicated always-on-top clock. Your tracker keeps working without the companion.</span></div></div><div class="setting-line"><div class="setting-detail"><strong>Always ready when the browser starts</strong><span>No separate launch switch needed. Closing this tab keeps tracking. An active session includes sleep and browser-closed time until you stamp out; correct forgotten sessions in Timeline. Alt+Shift+W opens quick stamp; Alt+Shift+S stamps out. Configure shortcuts in the browser’s extension settings.</span></div></div></section>
   <section class="panel setting-panel"><div class="setting-section-title">PRIVACY & DATA</div><div class="setting-line"><div class="setting-icon">${icon('layers', 21)}</div><div class="setting-detail"><strong>Stored locally, owned by you</strong><span>Time entries and preferences are stored in this browser profile. No accounts, network sync or telemetry.</span></div><span class="setting-value">Local only</span></div><div class="setting-line"><div class="setting-icon">${icon('clock', 21)}</div><div class="setting-detail"><strong>Private activity check</strong><span>Reminders check the time of your last keyboard or mouse activity, not the keys pressed or the applications you use. Sessions remain active until stamped out.</span></div></div></section>
   <section class="panel setting-panel"><div class="setting-section-title">BACKUP & RESTORE</div><div class="setting-line"><div class="setting-detail"><strong>Keep a portable copy</strong><span>Export all entries and preferences to JSON. Restoring replaces your current data after confirmation. For desktop SQLite migration, see the repository’s migration instructions.</span></div><button class="btn-secondary" data-action="export">Export JSON</button><label class="btn-outline">Restore JSON<input type="file" accept=".json,application/json" id="import-backup" hidden></label></div></section>
-  <div class="setting-version">Workflow v1.1.0 <span>•</span> A calmer relationship with time.</div>`;
+  <div class="setting-version">Workflow v1.2.0 <span>•</span> A calmer relationship with time.</div>`;
+}
+async function refreshCompanionStatus(){
+  try {state.companion=await call('companion_status');}
+  catch {state.companion={paired:false,online:false};}
+  if(state.page==='settings')render();
 }
 async function savePreferences(next) {
   const previous = state.preferences;
@@ -326,7 +344,14 @@ async function runAction(action, el) {
       const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
       const a=document.createElement('a');a.href=url;a.download='workflow-backup-'+dateKey(Date.now())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);break;
     }
-    case 'nav': state.page = el.dataset.page; window.scrollTo?.(0,0); render(); break;
+    case 'nav': state.page = el.dataset.page; window.scrollTo?.(0,0); render(); if(state.page==='settings')refreshCompanionStatus(); break;
+    case 'pair-companion': {
+      const key=document.querySelector('#companion-key')?.value.trim()??'';
+      state.companion=await call('connect_companion',{key});render();notify('Companion connected. Your floating timer is ready.');break;
+    }
+    case 'unpair-companion': {
+      state.companion=await call('disconnect_companion');render();notify('Companion disconnected.');break;
+    }
     case 'previous-day': state.day = shiftDays(state.day, -1); state.selection = null; await refresh(); break;
     case 'next-day': if (dateKey(state.day) !== dateKey(state.now)) { state.day = shiftDays(state.day, 1); state.selection = null; await refresh(); } break;
     case 'today': state.day = dayStart(state.now); state.selection = null; await refresh(); break;

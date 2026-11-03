@@ -1,5 +1,9 @@
 export async function invoke(command,args={}) {
   if(command==='hide_tray'){window.close();return;}
+  if(command==='connect_companion'){
+    const granted=await chrome.permissions.request({origins:['http://127.0.0.1/*']});
+    if(!granted)throw new Error('Allow access to 127.0.0.1 to connect the local desktop companion.');
+  }
   if(command==='set_preferences'&&args.remindersEnabled){
     const granted=await chrome.permissions.request({permissions:['notifications','idle']});
     if(!granted)throw new Error('Reminders need notification and idle permissions. Nothing was changed.');

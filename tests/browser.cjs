@@ -12,7 +12,7 @@ let lastPage,artifactDir;
  const state=()=>rpc('export_data');
  const badge=()=>worker.evaluate(()=>chrome.action.getBadgeText({}));
  console.log('Starting stamp',await rpc('export_data'));await page.locator('[data-action="stamp"][data-category="professional"]').click();await page.waitForFunction(()=>document.querySelector('.running-pill'));
- assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1);assert.equal(await badge(),'0m');
+ assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1);assert.equal(await badge(),'');
  const popup=await ctx.newPage();await popup.setViewportSize({width:380,height:540});await popup.goto(url+'?view=tray');await popup.locator('.tray-option.selected').waitFor();
  await popup.getByLabel('Optional session note').fill('Browser integration test');await popup.locator('[data-action="stamp"][data-category="personal"]').click();await page.waitForFunction(()=>document.querySelector('.running-pill')?.textContent.includes('Personal'));
  assert.equal((await state()).entries.find(e=>e.end_ms===null).note,'Browser integration test');
@@ -21,7 +21,7 @@ let lastPage,artifactDir;
  const now=Date.now(),today=new Date(now);today.setHours(0,0,0,0);const day=today.getTime();let sample=await state();sample.entries=[];
  for(let d=1;d<=7;d++){const start=day-d*86400000+9*3600000;sample.entries.push({id:`work-${d}`,category:'professional',note:'Project planning & focused work',start_ms:start,end_ms:start+(60+d*10)*60000},{id:`personal-${d}`,category:'personal',note:'Lunch and a walk',start_ms:start+3*3600000,end_ms:start+4*3600000});}
  const start=Math.max(day,now-4*3600000);sample.entries.push({id:'today-work',category:'professional',note:'Build something meaningful',start_ms:start,end_ms:start+45*60000},{id:'today-personal',category:'personal',note:'Take a breather',start_ms:start+45*60000,end_ms:start+60*60000},{id:'running',category:'professional',note:'Extension migration',start_ms:now-42*60000,end_ms:null});
- await rpc('import_data',{data:sample});await page.reload();await page.locator('.running-pill').waitFor();assert.equal(await badge(),'42m');
+ await rpc('import_data',{data:sample});await page.reload();await page.locator('.running-pill').waitFor();assert.equal(await badge(),'');
  await page.screenshot({path:path.join(out,'01-dashboard.png'),fullPage:true});
  await popup.reload();await popup.locator('.tray-option.selected').waitFor();await popup.screenshot({path:path.join(out,'02-quick-stamp.png')});
  assert.equal(await popup.evaluate(()=>document.documentElement.scrollWidth),380);
@@ -89,15 +89,15 @@ let lastPage,artifactDir;
  const saved=await state();await ctx.close();
  const prefPath=path.join(profile,'Default','Preferences');const prefs=JSON.parse(fs.readFileSync(prefPath,'utf8'));prefs.extensions??={};prefs.extensions.pinned_extensions=[id];fs.writeFileSync(prefPath,JSON.stringify(prefs));
  ctx=await launch();worker=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');const reopened=await ctx.newPage();await reopened.goto(url);await reopened.locator('.running-pill').waitFor();const persisted=await reopened.evaluate(()=>chrome.storage.local.get('workflow'));assert.deepEqual(persisted.workflow.entries,saved.entries);assert.equal(persisted.workflow.styles.professional.name,'Engineering');assert.ok(await worker.evaluate(()=>chrome.alarms.get('workflow-tick')));
- // With all views closed, the real alarm must advance the badge without a UI refresh.
+ // With all views closed, the real alarm must keep the badge empty and preserve tracking.
  sample.styles=saved.styles;sample.entries.find(e=>e.id==='running').start_ms=Date.now()-59000;
  await reopened.evaluate(data=>chrome.runtime.sendMessage({command:'import_data',args:{data}}),sample);
  const ordinary=await ctx.newPage();await ordinary.goto('about:blank');for(const p of ctx.pages())if(p!==ordinary)await p.close();
  await new Promise(resolve=>setTimeout(resolve,35000));
  worker=ctx.serviceWorkers().find(w=>w.url().includes(id))||await ctx.waitForEvent('serviceworker');
- assert.equal(await worker.evaluate(()=>chrome.action.getBadgeText({})),'1m');
+ assert.equal(await worker.evaluate(()=>chrome.action.getBadgeText({})),'');
  const finalPage=await ctx.newPage();lastPage=finalPage;await finalPage.goto(url);await finalPage.locator('.running-pill').waitFor();
  if(process.env.DISPLAY&&process.env.CAPTURE_DESKTOP){await finalPage.bringToFront();await finalPage.waitForTimeout(1000);require('node:child_process').execFileSync('scrot',[path.join(out,'06-pinned-toolbar.png')]);await worker.evaluate(()=>chrome.action.openPopup());await finalPage.waitForTimeout(1000);require('node:child_process').execFileSync('scrot',[path.join(out,'07-toolbar-popup.png')]);}
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({browser:ctx.browser().version(),passed:true,checks:['real MV3 worker','stamp/switch/stop','popup-tab sync','notes','badge 0m and 42m','category rename/color/icon','name injection escaping','timeline reassignment','keyboard resize','30-day insights','concurrent writes','overlap rollback','worker restart','browser restart persistence','alarm recreation','popup bounds and footer clearance','manual entry create/edit/delete','JSON export/restore','light/dark saved theme and cross-window synchronization','rounded popup frame','background alarm with all views closed','zero page errors']},null,2));
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({browser:ctx.browser().version(),passed:true,checks:['real MV3 worker','stamp/switch/stop','popup-tab sync','notes','empty toolbar badge','category rename/color/icon','name injection escaping','timeline reassignment','keyboard resize','30-day insights','concurrent writes','overlap rollback','worker restart','browser restart persistence','alarm recreation','popup bounds and footer clearance','manual entry create/edit/delete','JSON export/restore','light/dark saved theme and cross-window synchronization','rounded popup frame','background alarm with all views closed','zero page errors']},null,2));
  await ctx.close();console.log('PASS: real Chromium MV3 integration, persistence, UI and screenshots');
 })().catch(async e=>{console.error(e);if(lastPage){console.log('FAILURE BODY',await lastPage.locator('body').innerText().catch(()=>''));await lastPage.screenshot({path:path.join(artifactDir,'failure.png'),fullPage:true}).catch(()=>{});}process.exit(1)});
