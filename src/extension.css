@@ -187,3 +187,6 @@ html[data-theme="light"] .tray-option:hover,html[data-theme="light"] .tray-optio
 html[data-theme="light"] .tray-footer button:hover{color:#b85725}
 html[data-theme="light"] .tray-inline-error,html[data-theme="light"] .error-banner{background:#fff0e9;color:#a04427;border-color:#f0c3ab}
 html.popup-window[data-theme="light"],html.popup-window[data-theme="light"] body,html.popup-window[data-theme="light"] #app{background:transparent}
+
+/* Explicitly set the brand wordmark on light surfaces (including the popup). */
+html[data-theme="light"] .brand-name { color:#26313e !important; }

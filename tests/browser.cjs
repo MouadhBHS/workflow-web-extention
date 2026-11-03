@@ -40,6 +40,9 @@ let lastPage,artifactDir;
  await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
  await popup.waitForFunction(()=>document.documentElement.dataset.theme==='light');
  assert.equal((await state()).preferences.theme,'light');
+ await page.waitForTimeout(450); await popup.waitForTimeout(450);
+ assert.equal(await popup.locator('.brand-name').evaluate(el=>getComputedStyle(el).color),'rgb(38, 49, 62)','light popup title must be readable');
+ assert.equal(await page.locator('.brand-name').evaluate(el=>getComputedStyle(el).color),'rgb(38, 49, 62)','light sidebar title must be readable');
  assert.equal(await popup.locator('.tray-app').evaluate(el=>getComputedStyle(el).borderTopLeftRadius),'15px');
  assert.equal(await popup.locator('.tray-app').evaluate(el=>getComputedStyle(el).overflow),'hidden');
  await page.screenshot({path:path.join(out,'08-light-settings.png'),fullPage:true});
@@ -49,6 +52,7 @@ let lastPage,artifactDir;
  await page.locator('[data-page="settings"]').click();
  await page.getByLabel('Color theme').selectOption('dark');
  await popup.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
+ await popup.waitForTimeout(450);
  assert.equal((await state()).preferences.theme,'dark');
  await popup.screenshot({path:path.join(out,'11-rounded-dark-popup.png')});
  // User-controlled names must render as text, including attributes and timeline labels.
