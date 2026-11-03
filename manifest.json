@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Workflow — Time with intention",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local time tracking, editable categories, timeline corrections and an always-visible pinned toolbar timer.",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "alarms"],

@@ -11,6 +11,10 @@ A local-first Manifest V3 time tracker for **Opera Air and Chrome**, migrated fr
 
 No build is needed to install. Keep the extracted folder in place. To update, replace its files and use Reload on the same extension card; do not remove the extension if you want to retain its data. Export a backup first. Browser profiles and different installation paths may have separate extension data.
 
+## Appearance
+
+In **Settings → Appearance → Color theme**, choose **Dark** or **Light**. The preference is saved locally, synchronizes across the open dashboard and quick-stamp popup, and is included in backups. Dark is the default for existing installs. The popup has a rounded inner frame; the browser controls the outside popup window frame, which can vary by browser and operating system.
+
 ## Toolbar timer
 
 The native action badge occupies the existing icon slot: `0m`–`59m`, then `1:00`–`9:59`, then `10h` and above. Hover for the full hours/minutes and category. The popup and dashboard show hours/minutes/seconds.

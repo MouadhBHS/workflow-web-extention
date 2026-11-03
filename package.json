@@ -1,1 +1,1 @@
-{"name":"workflow-web-extension","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","test:browser":"node tests/browser.cjs","package":"python3 scripts/package.py"},"devDependencies":{"playwright":"1.56.1"}}
+{"name":"workflow-web-extension","version":"1.1.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","test:browser":"node tests/browser.cjs","package":"python3 scripts/package.py"},"devDependencies":{"playwright":"1.56.1"}}

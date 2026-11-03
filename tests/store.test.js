@@ -12,6 +12,19 @@ test('delete/edit active and stale entry rejected',()=>{let s=tx(initialState(),
 test('rename preserves historical category IDs, color and icon',()=>{let s=add(initialState(),100,200);const before=s.entries;s=tx(s,'set_category_appearance',{category:'professional',name:'Engineering'});assert.deepEqual(s.entries,before);assert.equal(s.styles.professional.name,'Engineering');assert.equal(s.styles.professional.icon,'briefcase');for(const name of ['', 'a'.repeat(33)])assert.throws(()=>tx(s,'set_category_appearance',{category:'professional',name}));});
 test('backup round trip validates ids, intervals and overlap before replacement',()=>{const s=add(initialState(),100,200);assert.deepEqual(validateState(s).entries,s.entries);assert.throws(()=>validateState({...s,entries:[...s.entries,...s.entries]}));assert.throws(()=>validateState({...s,version:999}));assert.throws(()=>validateState({...s,entries:[{...s.entries[0],category:'invalid'}]}));});
 test('badge compact formats, idle and elapsed timestamp accuracy',()=>{let s=tx(initialState(),'stamp_in',{category:'professional'},100);for(const [mins,label] of [[0,'0m'],[59,'59m'],[60,'1:00'],[599,'9:59'],[600,'10h'],[60000,'999+']])assert.equal(toolbar(s,100+mins*60000).text,label);assert.equal(toolbar(initialState()).text,'');assert.equal(toolbar(s,0).text,'0m');});
+test('light theme is persisted, validated, and compatible with older backups', () => {
+ let state=initialState();
+ assert.equal(state.preferences.theme,'dark');
+ state=tx(state,'set_preferences',{opacity:97,theme:'light',remindersEnabled:false,cooldownMinutes:15});
+ assert.equal(state.preferences.theme,'light');
+ assert.equal(validateState(state).preferences.theme,'light');
+ const legacy=structuredClone(state);delete legacy.preferences.theme;
+ assert.equal(validateState(legacy).preferences.theme,'dark');
+ assert.equal(validateState({...state,preferences:{...state.preferences,theme:'invalid'}}).preferences.theme,'dark');
+ state=tx(state,'set_preferences',{opacity:95,remindersEnabled:false,cooldownMinutes:15});
+ assert.equal(state.preferences.theme,'light','older caller must not erase an existing theme');
+});
+
 test('reminders opt-in, require active observations, respect cooldown and reset on idle/sleep',()=>{let s=initialState();assert.equal(s.preferences.reminders_enabled,false);s.preferences.reminders_enabled=true;let n=10000000;for(let i=0;i<4;i++){const r=reminderTick(s,n+i*30000,true);s=r.state;assert.equal(r.notify,false);}let r=reminderTick(s,n+120000,true);assert.equal(r.notify,true);s=r.state;r=reminderTick(s,n+150000,true);assert.equal(r.notify,false);r=reminderTick(s,n+200000,false);assert.equal(r.state.reminder.activeSince,null);r=reminderTick(s,n+999999,true);assert.equal(r.notify,false);});
 test('random interval paints preserve non-overlap and coverage invariants',()=>{let s=initialState();let seed=31;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed%10000;};for(let i=0;i<400;i++){const start=rand(),end=start+1+rand();s=tx(s,i%3?'reassign_range':'clear_range',{startMs:start,endMs:end,category:'professional',note:''});validateState(s);}});
 test('toolbar text stays legible for light and dark custom colors',()=>{let s=tx(initialState(),'stamp_in',{category:'professional'},100);s=tx(s,'set_category_appearance',{category:'professional',color:'#FFFFFF'});assert.equal(toolbar(s).textColor,'#111111');s=tx(s,'set_category_appearance',{category:'professional',color:'#000000'});assert.equal(toolbar(s).textColor,'#FFFFFF');});

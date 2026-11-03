@@ -35,6 +35,22 @@ let lastPage,artifactDir;
  await page.locator('[data-action="choose-category-icon"][data-category="professional"][data-icon="bolt"]').click();
  await page.waitForFunction(()=>document.querySelector('[data-category="professional"][data-icon="bolt"]')?.getAttribute('aria-pressed')==='true');
  await page.screenshot({path:path.join(out,'03-settings.png'),fullPage:true});
+ // Light appearance must persist and sync to the popup, not merely recolor one tab.
+ await page.getByLabel('Color theme').selectOption('light');
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
+ await popup.waitForFunction(()=>document.documentElement.dataset.theme==='light');
+ assert.equal((await state()).preferences.theme,'light');
+ assert.equal(await popup.locator('.tray-app').evaluate(el=>getComputedStyle(el).borderTopLeftRadius),'15px');
+ assert.equal(await popup.locator('.tray-app').evaluate(el=>getComputedStyle(el).overflow),'hidden');
+ await page.screenshot({path:path.join(out,'08-light-settings.png'),fullPage:true});
+ await popup.screenshot({path:path.join(out,'09-light-popup.png')});
+ await page.locator('[data-page="dashboard"]').click();
+ await page.screenshot({path:path.join(out,'10-light-dashboard.png'),fullPage:true});
+ await page.locator('[data-page="settings"]').click();
+ await page.getByLabel('Color theme').selectOption('dark');
+ await popup.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
+ assert.equal((await state()).preferences.theme,'dark');
+ await popup.screenshot({path:path.join(out,'11-rounded-dark-popup.png')});
  // User-controlled names must render as text, including attributes and timeline labels.
  await page.getByLabel('Category name for personal').fill('<img src=x onerror=alert(1)>');await page.getByLabel('Category name for personal').press('Tab');await page.waitForFunction(()=>!document.querySelector('.category-saving'));
  assert.equal(await page.locator('img[src="x"]').count(),0);assert.equal((await state()).styles.personal.name,'<img src=x onerror=alert(1)>');
@@ -78,6 +94,6 @@ let lastPage,artifactDir;
  assert.equal(await worker.evaluate(()=>chrome.action.getBadgeText({})),'1m');
  const finalPage=await ctx.newPage();lastPage=finalPage;await finalPage.goto(url);await finalPage.locator('.running-pill').waitFor();
  if(process.env.DISPLAY&&process.env.CAPTURE_DESKTOP){await finalPage.bringToFront();await finalPage.waitForTimeout(1000);require('node:child_process').execFileSync('scrot',[path.join(out,'06-pinned-toolbar.png')]);await worker.evaluate(()=>chrome.action.openPopup());await finalPage.waitForTimeout(1000);require('node:child_process').execFileSync('scrot',[path.join(out,'07-toolbar-popup.png')]);}
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({browser:ctx.browser().version(),passed:true,checks:['real MV3 worker','stamp/switch/stop','popup-tab sync','notes','badge 0m and 42m','category rename/color/icon','name injection escaping','timeline reassignment','keyboard resize','30-day insights','concurrent writes','overlap rollback','worker restart','browser restart persistence','alarm recreation','popup bounds and footer clearance','manual entry create/edit/delete','JSON export/restore','background alarm with all views closed','zero page errors']},null,2));
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({browser:ctx.browser().version(),passed:true,checks:['real MV3 worker','stamp/switch/stop','popup-tab sync','notes','badge 0m and 42m','category rename/color/icon','name injection escaping','timeline reassignment','keyboard resize','30-day insights','concurrent writes','overlap rollback','worker restart','browser restart persistence','alarm recreation','popup bounds and footer clearance','manual entry create/edit/delete','JSON export/restore','light/dark saved theme and cross-window synchronization','rounded popup frame','background alarm with all views closed','zero page errors']},null,2));
  await ctx.close();console.log('PASS: real Chromium MV3 integration, persistence, UI and screenshots');
 })().catch(async e=>{console.error(e);if(lastPage){console.log('FAILURE BODY',await lastPage.locator('body').innerText().catch(()=>''));await lastPage.screenshot({path:path.join(artifactDir,'failure.png'),fullPage:true}).catch(()=>{});}process.exit(1)});

@@ -23,6 +23,7 @@ const state = {
 };
 const app = document.querySelector('#app');
 function applyAppearance() {
+  document.documentElement.dataset.theme = state.preferences.theme;
   if (!isTray) document.documentElement.style.setProperty('--surface-opacity', String(opacityFraction(state.preferences.opacity)));
 }
 applyAppearance();
@@ -200,9 +201,10 @@ function insights() {
   <section class="panel insights-bottom"><div class="panel-heading"><div><h2>Category distribution</h2><p>A balanced view of your tracked hours</p></div></div>${distribution(totals)}<div class="insight-comment">${icon('sparkles', 19)}${totals.total ? `Your busiest day in this period was ${formatDate(most.start, { weekday: 'long', month:'short', day:'numeric' })} with ${duration(most.total)} logged.` : 'Your insights will grow as you record more time.'}</div></section>`;
 }
 function settings() {
-  const { opacity, reminders_enabled, cooldown_minutes } = state.preferences;
+  const { theme, opacity, reminders_enabled, cooldown_minutes } = state.preferences;
   return `${headline('Your preferences<span class="heading-dot">.</span>', 'Make your workspace feel right, without unnecessary interruptions.')}
   <section class="panel setting-panel"><div class="setting-section-title">APPEARANCE</div>
+    <div class="setting-line"><div class="setting-icon">${icon('monitor', 21)}</div><div class="setting-detail"><label for="color-theme" class="setting-control-label">Color theme</label><span>Choose a bright or dark workspace. Your choice applies to the dashboard and quick-stamp popup.</span></div><select id="color-theme" class="pref-select" aria-label="Color theme" data-field="theme"><option value="dark" ${theme==='dark'?'selected':''}>Dark</option><option value="light" ${theme==='light'?'selected':''}>Light</option></select></div>
     <div class="setting-line"><div class="setting-icon">${icon('layers', 21)}</div><div class="setting-detail"><strong>Surface tint</strong><span>Adjust the darkness of the dashboard surface. Browser pages cannot use Windows Acrylic.</span>
       <div class="pref-slider"><input id="window-opacity" aria-label="Main window opacity" data-field="opacity" type="range" min="85" max="100" step="1" value="${opacity}"/><div class="pref-scale"><span>Softer tint</span><span>Darker tint</span></div></div>
     </div><output id="opacity-value" class="setting-value" for="window-opacity">${opacity}%</output></div>
@@ -218,7 +220,7 @@ function settings() {
   <section class="panel setting-panel"><div class="setting-section-title">BROWSER & TOOLBAR</div><div class="setting-line"><div class="setting-detail"><strong>Pin Workflow to keep your timer visible</strong><span>Open Opera Air’s Extensions menu and pin Workflow. The badge shows elapsed minutes (42m), hours and minutes (1:05), then whole hours from 10h. Hover for details; click for quick stamping. Refreshes about every 30 seconds while the browser is awake.</span></div></div><div class="setting-line"><div class="setting-detail"><strong>Always ready when the browser starts</strong><span>No separate launch switch needed. Closing this tab keeps tracking. An active session includes sleep and browser-closed time until you stamp out; correct forgotten sessions in Timeline. Alt+Shift+W opens quick stamp; Alt+Shift+S stamps out. Configure shortcuts in the browser’s extension settings.</span></div></div></section>
   <section class="panel setting-panel"><div class="setting-section-title">PRIVACY & DATA</div><div class="setting-line"><div class="setting-icon">${icon('layers', 21)}</div><div class="setting-detail"><strong>Stored locally, owned by you</strong><span>Time entries and preferences are stored in this browser profile. No accounts, network sync or telemetry.</span></div><span class="setting-value">Local only</span></div><div class="setting-line"><div class="setting-icon">${icon('clock', 21)}</div><div class="setting-detail"><strong>Private activity check</strong><span>Reminders check the time of your last keyboard or mouse activity, not the keys pressed or the applications you use. Sessions remain active until stamped out.</span></div></div></section>
   <section class="panel setting-panel"><div class="setting-section-title">BACKUP & RESTORE</div><div class="setting-line"><div class="setting-detail"><strong>Keep a portable copy</strong><span>Export all entries and preferences to JSON. Restoring replaces your current data after confirmation. For desktop SQLite migration, see the repository’s migration instructions.</span></div><button class="btn-secondary" data-action="export">Export JSON</button><label class="btn-outline">Restore JSON<input type="file" accept=".json,application/json" id="import-backup" hidden></label></div></section>
-  <div class="setting-version">Workflow v1.0.0 <span>•</span> A calmer relationship with time.</div>`;
+  <div class="setting-version">Workflow v1.1.0 <span>•</span> A calmer relationship with time.</div>`;
 }
 async function savePreferences(next) {
   const previous = state.preferences;
@@ -228,6 +230,7 @@ async function savePreferences(next) {
   try {
     const result = await call('set_preferences', {
       opacity: candidate.opacity,
+      theme: candidate.theme,
       remindersEnabled: candidate.reminders_enabled,
       cooldownMinutes: candidate.cooldown_minutes,
     });
@@ -419,6 +422,10 @@ document.addEventListener('change', async e => {
     await saveCategoryStyle(e.target.dataset.categoryColor, { color: e.target.value });
     return;
   }
+  if (e.target.dataset.field === 'theme') {
+    await savePreferences({ ...state.preferences, theme: e.target.value });
+    return;
+  }
   if (e.target.dataset.field === 'opacity') {
     await savePreferences({ ...state.preferences, opacity: Number(e.target.value) });
     return;
@@ -555,7 +562,7 @@ async function bootstrap() {
     });
     listen('preferences-changed', async () => { state.preferences = normalizePreferences(await call('get_preferences')); applyAppearance(); if(state.page==='settings')render(); });
     await loadCategoryAppearances().catch(error => notify(niceError(error), true));
-    if (!isTray) {
+    {
       const pref = call('get_preferences').then(value => {
         state.preferences = normalizePreferences(value);
         applyAppearance();

@@ -1,6 +1,7 @@
 // Keep the appearance and reminder controls in sync with the native SQLite store.
 export const DEFAULT_PREFERENCES = Object.freeze({
   opacity: 97,
+  theme: 'dark',
   reminders_enabled: false,
   cooldown_minutes: 15,
 });
@@ -8,6 +9,7 @@ export function normalizePreferences(input = {}) {
   const rawOpacity = Number(input.opacity);
   const rawCooldown = Number(input.cooldown_minutes);
   return {
+    theme: input.theme === 'light' ? 'light' : 'dark',
     opacity: Number.isInteger(rawOpacity) && rawOpacity >= 85 && rawOpacity <= 100
       ? rawOpacity : DEFAULT_PREFERENCES.opacity,
     reminders_enabled: typeof input.reminders_enabled === 'boolean'

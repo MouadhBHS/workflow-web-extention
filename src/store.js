@@ -73,7 +73,7 @@ export function transact(previous,command,args={},now=Date.now(),uuid=()=>crypto
     case 'set_category_appearance':
       category(args.category);result=validatedStyle({...state.styles[args.category],...args});state.styles[args.category]=result;break;
     case 'set_preferences':
-      result=normalizePreferences({opacity:args.opacity,reminders_enabled:args.remindersEnabled,cooldown_minutes:args.cooldownMinutes});state.preferences=result;state.reminder={activeSince:null,lastSent:0,lastCheck:0};break;
+      result=normalizePreferences({opacity:args.opacity,theme:args.theme??state.preferences.theme,reminders_enabled:args.remindersEnabled,cooldown_minutes:args.cooldownMinutes});state.preferences=result;state.reminder={activeSince:null,lastSent:0,lastCheck:0};break;
     case 'import_data':return {state:validateState(args.data,now),result:true,changed:true};
     default:fail('Unknown command.');
   }
