@@ -1,0 +1,42 @@
+name: Build Windows companion
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  windows-companion:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and test real loopback bridge
+        shell: pwsh
+        run: |
+          dotnet run --project companion/WorkflowCompanion.csproj -c Release -- --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Windows companion self-tests failed' }
+      - name: Render UI from the actual Windows drawing code
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/companion | Out-Null
+          dotnet run --project companion/WorkflowCompanion.csproj -c Release -- --render-samples artifacts/companion
+          if ($LASTEXITCODE -ne 0) { throw 'Windows companion rendering failed' }
+          $samples = @(Get-ChildItem artifacts/companion/*.png)
+          if ($samples.Count -lt 5) { throw "Expected five real renderer screenshots, found $($samples.Count)" }
+      - name: Publish portable single-file Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish companion/WorkflowCompanion.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=none -o dist/companion
+          if ($LASTEXITCODE -ne 0) { throw 'Windows publish failed' }
+          if (!(Test-Path dist/companion/WorkflowCompanion.exe)) { throw 'Companion EXE not produced' }
+          Compress-Archive -Path dist/companion/WorkflowCompanion.exe -DestinationPath dist/WorkflowBuddy-Windows-x64.zip -Force
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: WorkflowBuddy-Windows-x64-and-screenshots
+          path: |
+            dist/WorkflowBuddy-Windows-x64.zip
+            dist/companion/WorkflowCompanion.exe
+            artifacts/companion/*.png

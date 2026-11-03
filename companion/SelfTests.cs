@@ -38,7 +38,7 @@ internal static class SelfTests
                 using var response=await http.SendAsync(req);
                 return response.StatusCode;
             }
-            Check(await Send(ActiveJson(now-120000),"0"+key[1..])==HttpStatusCode.Unauthorized,"wrong key");
+            Check(await Send(ActiveJson(now-120000),(key[0]=='0'?'1':'0')+key[1..])==HttpStatusCode.Unauthorized,"wrong key");
             Check(received is null,"unauthorized message mutated state");
             Check(await Send(ActiveJson(now-120000),key,"https://evil.example")==HttpStatusCode.Forbidden,"website origin");
             Check(await Send(ActiveJson(now-120000,"bad"),key)==HttpStatusCode.BadRequest,"invalid schema");

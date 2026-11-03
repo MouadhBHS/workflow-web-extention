@@ -34,6 +34,11 @@ let lastPage,artifactDir;
  await page.waitForFunction(()=>document.querySelector('#color-professional')?.value==='#55c5ac');
  await page.locator('[data-action="choose-category-icon"][data-category="professional"][data-icon="bolt"]').click();
  await page.waitForFunction(()=>document.querySelector('[data-category="professional"][data-icon="bolt"]')?.getAttribute('aria-pressed')==='true');
+ assert.equal(await page.getByLabel('Companion pairing key').count(),1);
+ await page.getByLabel('Companion pairing key').fill('bad');
+ await page.getByRole('button',{name:'Connect',exact:true}).click();
+ await page.getByText('Paste a valid 32-character companion pairing key.').waitFor();
+ assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1,'invalid companion key must not change tracking');
  await page.screenshot({path:path.join(out,'03-settings.png'),fullPage:true});
  // Light appearance must persist and sync to the popup, not merely recolor one tab.
  await page.getByLabel('Color theme').selectOption('light');

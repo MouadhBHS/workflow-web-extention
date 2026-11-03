@@ -1,6 +1,8 @@
 export async function invoke(command,args={}) {
   if(command==='hide_tray'){window.close();return;}
   if(command==='connect_companion'){
+    if(!/^[a-f0-9]{32}$/i.test(String(args.key??'').trim()))
+      throw new Error('Paste a valid 32-character companion pairing key.');
     const granted=await chrome.permissions.request({origins:['http://127.0.0.1/*']});
     if(!granted)throw new Error('Allow access to 127.0.0.1 to connect the local desktop companion.');
   }
