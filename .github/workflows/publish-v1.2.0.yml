@@ -1,0 +1,112 @@
+name: Publish Workflow v1.2.0 downloads
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v1.2.0.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Confirm extension unit tests
+        shell: pwsh
+        run: |
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'Extension unit tests failed' }
+      - name: Confirm Windows bridge and build a self-contained EXE
+        shell: pwsh
+        run: |
+          dotnet run --project companion/WorkflowCompanion.csproj -c Release -- --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Companion security tests failed' }
+          dotnet publish companion/WorkflowCompanion.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:EnableCompressionInSingleFile=true -p:DebugType=none -o dist/companion
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path dist/companion/WorkflowCompanion.exe)) { throw 'Companion build failed' }
+      - name: Package and verify installable downloads
+        shell: pwsh
+        run: |
+          python scripts/package.py
+          if ($LASTEXITCODE -ne 0) { throw 'Extension packaging failed' }
+          New-Item -ItemType Directory -Force dist/downloads | Out-Null
+          Copy-Item dist/workflow-extension.zip dist/downloads/Workflow_Extension_Opera_Air_v1.2.0.zip
+          Compress-Archive -Path dist/companion/WorkflowCompanion.exe -DestinationPath dist/downloads/WorkflowBuddy_Windows_v1.2.0.zip -Force
+          @'
+          Workflow v1.2.0 — Opera Air + floating Windows companion
+
+          1. UPDATE OPERA AIR EXTENSION:
+             Extract Workflow_Extension_Opera_Air_v1.2.0.zip into the same permanent
+             extension folder already used by Opera, then open opera://extensions
+             and click Reload. DO NOT remove/uninstall the existing extension:
+             uninstalling may erase its locally saved tracking history.
+             If installing for the first time, enable Developer mode and Load unpacked
+             from the folder containing manifest.json.
+
+          2. RUN THE COMPANION:
+             Extract WorkflowBuddy_Windows_v1.2.0.zip.
+             Run WorkflowCompanion.exe. Right-click the character or its system-tray
+             icon and choose Copy pairing key.
+
+          3. PAIR:
+             In the extension dashboard, Settings > Floating desktop companion,
+             paste the key and click Connect. Approve access to 127.0.0.1 if prompted.
+             The floating window can be dragged, resized from its right-click menu,
+             hidden to the tray, or set to start with Windows.
+
+          Tracking is stored in the browser extension. The companion receives only
+          the current category, its display name/color, and the start timestamp.
+          No online service, browsing-history permissions, or account is required.
+          '@ | Set-Content -Path dist/downloads/INSTALL_README.txt -Encoding UTF8
+          New-Item -ItemType Directory -Force dist/suite | Out-Null
+          Copy-Item dist/downloads/* dist/suite/
+          Compress-Archive -Path dist/suite/* -DestinationPath dist/downloads/Workflow_Complete_Opera_Air_Windows_v1.2.0.zip -Force
+          @'
+          import zipfile
+          from pathlib import Path
+          root=Path("dist/downloads")
+          files=[
+            "Workflow_Extension_Opera_Air_v1.2.0.zip",
+            "WorkflowBuddy_Windows_v1.2.0.zip",
+            "Workflow_Complete_Opera_Air_Windows_v1.2.0.zip",
+          ]
+          for filename in files:
+            with zipfile.ZipFile(root/filename) as z:
+              assert z.testzip() is None, filename
+              if filename.startswith("Workflow_Extension_"):
+                assert "manifest.json" in z.namelist()
+              if filename.startswith("WorkflowBuddy_"):
+                assert "WorkflowCompanion.exe" in z.namelist()
+              if filename.startswith("Workflow_Complete_"):
+                assert "WorkflowBuddy_Windows_v1.2.0.zip" in z.namelist()
+                assert "Workflow_Extension_Opera_Air_v1.2.0.zip" in z.namelist()
+            print("VERIFIED",filename,(root/filename).stat().st_size)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Package integrity checks failed' }
+      - name: Publish stable direct GitHub download links
+        shell: pwsh
+        run: |
+          $tag="v1.2.0"
+          $assets=@(
+            "dist/downloads/Workflow_Extension_Opera_Air_v1.2.0.zip",
+            "dist/downloads/WorkflowBuddy_Windows_v1.2.0.zip",
+            "dist/downloads/Workflow_Complete_Opera_Air_Windows_v1.2.0.zip",
+            "dist/downloads/INSTALL_README.txt"
+          )
+          gh release view $tag --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @assets --clobber --repo "$env:GITHUB_REPOSITORY"
+          } else {
+            gh release create $tag @assets --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "Workflow v1.2.0 — Opera Air + Windows Buddy" --notes "Installable Opera Air extension and self-contained Windows floating timer. Includes companion pairing and an installation guide. The full suite download contains both ZIPs. Do not uninstall your existing extension; reload it to preserve local tracking data."
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed' }
+          gh release view $tag --repo "$env:GITHUB_REPOSITORY" --json url,assets
