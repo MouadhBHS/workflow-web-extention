@@ -77,7 +77,7 @@ internal static class BuddyRenderer
 
         // Cozy halo, in the user's category color.
         using(var halo=new SolidBrush(Color.FromArgb(28,mood)))
-            g.FillEllipse(35,14,116,108);
+            g.FillEllipse(halo,35,14,116,108);
         using(var body=RoundRect(new RectangleF(faceX,faceY,92,87),30))
         using(var gradient=new LinearGradientBrush(
             new RectangleF(faceX,faceY,92,87),Mix(mood,Color.White,.30f),
@@ -91,12 +91,12 @@ internal static class BuddyRenderer
         if(!idle && active!.Category=="adhd")
         {
             using var ear=new SolidBrush(mood);
-            g.FillEllipse(faceX-5,faceY+24,12,17);
-            g.FillEllipse(faceX+85,faceY+24,12,17);
+            g.FillEllipse(ear,faceX-5,faceY+24,12,17);
+            g.FillEllipse(ear,faceX+85,faceY+24,12,17);
         }
 
         using(var shine=new SolidBrush(Color.FromArgb(65,255,255,255)))
-            g.FillEllipse(faceX+17,faceY+7,35,10);
+            g.FillEllipse(shine,faceX+17,faceY+7,35,10);
         bool blink=(t+0.9)%5.2<.16 || (idle && (t+0.9)%3.6<.2);
         bool wink=!idle&&active!.Category=="adhd"&&(t+.25)%8.1<.20;
         float drift=idle?0:active!.Category=="adhd"?(float)Math.Sin(t*1.9)*3f:active.Category=="personal"?(float)Math.Sin(t*.5):0;
