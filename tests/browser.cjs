@@ -1,15 +1,17 @@
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/playwright':'playwright');
 const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const os=require('node:os');
+let lastPage,artifactDir;
 (async()=>{
- const root=path.resolve(__dirname,'..'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'workflow-test-')),out=path.join(root,'artifacts');fs.mkdirSync(out,{recursive:true});
+ const root=path.resolve(__dirname,'..'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'workflow-test-')),out=path.join(root,'artifacts');fs.mkdirSync(out,{recursive:true});artifactDir=out;
  const launch=()=>chromium.launchPersistentContext(profile,{executablePath:process.env.CHROME_PATH||undefined,headless:!process.env.DISPLAY,channel:'chromium',ignoreDefaultArgs:['--disable-extensions'],viewport:{width:1440,height:1000},args:['--no-sandbox','--disable-dev-shm-usage',`--disable-extensions-except=${root}`,`--load-extension=${root}`]});
  let ctx=await launch();let worker=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');const id=worker.url().split('/')[2],url=`chrome-extension://${id}/index.html`;const errors=[];
- ctx.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
- const page=await ctx.newPage();await page.goto(url);await page.locator('[data-action="stamp"][data-category="professional"]').waitFor();
+ ctx.on('page',p=>{p.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message)});p.on('console',m=>{if(m.type()==='error')console.error('PAGE CONSOLE',m.text())});});
+ worker.on('console',m=>console.log('WORKER',m.text()));
+ const page=await ctx.newPage();lastPage=page;await page.goto(url);await page.locator('[data-action="stamp"][data-category="professional"]').waitFor();
  const rpc=(c,a={})=>page.evaluate(async({c,a})=>{const r=await chrome.runtime.sendMessage({command:c,args:a});if(!r.ok)throw Error(r.error);return r.data;},{c,a});
  const state=()=>rpc('export_data');
  const badge=()=>worker.evaluate(()=>chrome.action.getBadgeText({}));
- await page.locator('[data-action="stamp"][data-category="professional"]').click();await page.waitForFunction(()=>document.querySelector('.running-pill'));
+ console.log('Starting stamp',await rpc('export_data'));await page.locator('[data-action="stamp"][data-category="professional"]').click();await page.waitForFunction(()=>document.querySelector('.running-pill'));
  assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1);assert.equal(await badge(),'0m');
  const popup=await ctx.newPage();await popup.setViewportSize({width:380,height:490});await popup.goto(url+'?view=tray');await popup.locator('.tray-option.selected').waitFor();
  await popup.getByLabel('Optional session note').fill('Browser integration test');await popup.locator('[data-action="stamp"][data-category="personal"]').click();await page.waitForFunction(()=>document.querySelector('.running-pill')?.textContent.includes('Personal'));
@@ -52,7 +54,10 @@ const assert=require('node:assert/strict');const fs=require('node:fs');const pat
  await popup.close();const session=await ctx.newCDPSession(page);await session.send('ServiceWorker.enable');const versions=[];session.on('ServiceWorker.workerVersionUpdated',({versions:v})=>versions.push(...v));await rpc('snapshot',{fromMs:0,toMs:Date.now()});
  const browserSession=await ctx.browser().newBrowserCDPSession();const targets=await browserSession.send('Target.getTargets');const target=targets.targetInfos.find(t=>t.type==='service_worker'&&t.url.includes(id));if(target)await browserSession.send('Target.closeTarget',{targetId:target.targetId});
  await rpc('snapshot',{fromMs:0,toMs:Date.now()});assert.equal((await state()).entries.filter(e=>e.end_ms===null).length,1);
- const saved=await state();await ctx.close();ctx=await launch();worker=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');const reopened=await ctx.newPage();await reopened.goto(url);await reopened.locator('.running-pill').waitFor();const persisted=await reopened.evaluate(()=>chrome.storage.local.get('workflow'));assert.deepEqual(persisted.workflow.entries,saved.entries);assert.equal(persisted.workflow.styles.professional.name,'Engineering');assert.ok(await worker.evaluate(()=>chrome.alarms.get('workflow-tick')));
+ const saved=await state();await ctx.close();
+ const prefPath=path.join(profile,'Default','Preferences');const prefs=JSON.parse(fs.readFileSync(prefPath,'utf8'));prefs.extensions??={};prefs.extensions.pinned_extensions=[id];fs.writeFileSync(prefPath,JSON.stringify(prefs));
+ ctx=await launch();worker=ctx.serviceWorkers()[0]||await ctx.waitForEvent('serviceworker');const reopened=await ctx.newPage();await reopened.goto(url);await reopened.locator('.running-pill').waitFor();const persisted=await reopened.evaluate(()=>chrome.storage.local.get('workflow'));assert.deepEqual(persisted.workflow.entries,saved.entries);assert.equal(persisted.workflow.styles.professional.name,'Engineering');assert.ok(await worker.evaluate(()=>chrome.alarms.get('workflow-tick')));
+ if(process.env.DISPLAY&&process.env.CAPTURE_DESKTOP){await reopened.bringToFront();await reopened.waitForTimeout(1000);require('node:child_process').execFileSync('scrot',[path.join(out,'06-pinned-toolbar.png')]);}
  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({browser:ctx.browser().version(),passed:true,checks:['real MV3 worker','stamp/switch/stop','popup-tab sync','notes','badge 0m and 42m','category rename/color/icon','name injection escaping','timeline reassignment','keyboard resize','30-day insights','concurrent writes','overlap rollback','worker restart','browser restart persistence','alarm recreation','popup bounds','zero page errors']},null,2));
  await ctx.close();console.log('PASS: real Chromium MV3 integration, persistence, UI and screenshots');
-})().catch(e=>{console.error(e);process.exit(1)});
+})().catch(async e=>{console.error(e);if(lastPage){console.log('FAILURE BODY',await lastPage.locator('body').innerText().catch(()=>''));await lastPage.screenshot({path:path.join(artifactDir,'failure.png'),fullPage:true}).catch(()=>{});}process.exit(1)});

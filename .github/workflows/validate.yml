@@ -14,8 +14,11 @@ jobs:
       - run: npm install --ignore-scripts
       - run: npm test
       - run: npx playwright install --with-deps chromium
+      - run: sudo apt-get install -y scrot
       - name: Real extension browser tests and screenshots
-        run: xvfb-run -a npm run test:browser
+        run: xvfb-run -a -s "-screen 0 1600x1200x24" npm run test:browser
+        env:
+          CAPTURE_DESKTOP: "1"
       - run: npm run package
       - uses: actions/upload-artifact@v4
         if: always()
