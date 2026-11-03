@@ -28,7 +28,7 @@ jobs:
       - name: Publish portable single-file Windows executable
         shell: pwsh
         run: |
-          dotnet publish companion/WorkflowCompanion.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=none -o dist/companion
+          dotnet publish companion/WorkflowCompanion.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:EnableCompressionInSingleFile=true -p:DebugType=none -o dist/companion
           if ($LASTEXITCODE -ne 0) { throw 'Windows publish failed' }
           if (!(Test-Path dist/companion/WorkflowCompanion.exe)) { throw 'Companion EXE not produced' }
           Compress-Archive -Path dist/companion/WorkflowCompanion.exe -DestinationPath dist/WorkflowBuddy-Windows-x64.zip -Force
@@ -38,5 +38,4 @@ jobs:
           name: WorkflowBuddy-Windows-x64-and-screenshots
           path: |
             dist/WorkflowBuddy-Windows-x64.zip
-            dist/companion/WorkflowCompanion.exe
             artifacts/companion/*.png
